@@ -112,31 +112,32 @@
   /* ================= MÓVIL EN VERTICAL ================= */
   @media (max-width:760px) and (orientation:portrait){
     :root{
-      /* Los 4 montones apilados deben caber en la altura disponible */
-      --ph:max(70px, calc((100dvh - 300px) / 4));
+      /* Altura de la carta grande: lo que deja libre la cabecera y los montones 2×2 de abajo.
+         Los montones miden el 72 % de la carta grande. */
+      --ch:min(calc((100dvh - 180px) / 2.44), calc(48vw * 1.57));
+      --cw:calc(var(--ch) / 1.57);
+      --ph:calc(var(--ch) * .72);
       --pw:calc(var(--ph) / 1.57);
-      --cw:min(calc(100vw - 150px), calc((100dvh - 250px) / 1.57));
-      --dw:44px;
+      --dw:calc(var(--cw) * .55);
+      --dh:calc(var(--dw) * 1.57);
     }
     body{min-height:100dvh}
-    .juego{padding:10px 12px calc(10px + env(safe-area-inset-bottom));height:100dvh;display:flex;flex-direction:column}
-    .barra{position:relative;gap:8px}
-    .barra h1{font-size:22px}
-    .barra h1 small{display:none}
-    #b-nueva{position:absolute;top:0;right:0;padding:6px 10px;font-size:13px}
+    .juego{padding:8px 12px calc(8px + env(safe-area-inset-bottom));height:100dvh;display:flex;flex-direction:column}
+    .barra{flex-wrap:nowrap;gap:5px}
+    .barra h1{display:none}
     .marcadores{width:100%;gap:5px;flex-wrap:nowrap}
     .dato{flex:1;min-width:0;padding:3px 2px;border-radius:8px}
-    .dato b{font-size:17px}
-    .dato span{font-size:9px;letter-spacing:.2px}
-    .tablero{flex:1;min-height:0;display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px}
-    .mesa{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;margin:0}
+    .dato b{font-size:16px}
+    .dato span{font-size:8.5px;letter-spacing:.1px}
+    #b-nueva{flex:0 0 58px;align-self:stretch;padding:2px 4px;font-size:11px;line-height:1.15;white-space:normal;border-radius:8px}
+    .tablero{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;gap:10px;margin-top:8px}
+    .mesa{display:flex;flex-direction:row;align-items:center;justify-content:space-around;margin:0}
     .mazo{justify-self:auto;align-self:center}
-    .mazo .contador{bottom:auto;top:50%;left:calc(100% + 8px);right:auto;transform:translateY(-50%);white-space:nowrap;font-size:12px}
-    .ayuda{display:none}
-    .ayuda-corta{display:block;margin:0;font-size:12px;color:var(--suave);text-align:center}
-    .montones{grid-template-columns:1fr;gap:8px;align-content:center}
+    .mazo .contador{bottom:-22px;left:-20px;right:-20px;white-space:nowrap;font-size:11px}
+    .ayuda,.ayuda-corta{display:none}
+    .montones{grid-template-columns:repeat(2,1fr);gap:8px}
     .monton{display:grid;grid-template-columns:auto auto;grid-template-areas:"t c" "h h";justify-content:center;align-items:baseline;column-gap:6px;row-gap:4px;padding:5px 7px 7px;border-radius:10px}
-    .monton.sobre{transform:translateX(-4px)}
+    .monton.sobre{transform:translateY(-3px)}
     .monton .titulo{grid-area:t;font-size:13px}
     .monton .titulo .tecla{display:none}
     .monton .cuenta{grid-area:c;font-size:11px}
