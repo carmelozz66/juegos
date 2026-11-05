@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0e3b21">
+<title>Cuatro Palos</title>
+<!--
+  Cartas: fotografía «Spanish deck Fournier.jpg» de Cantabrucu, Wikimedia Commons, licencia CC0.
+  https://commons.wikimedia.org/wiki/File:Spanish_deck_Fournier.jpg
+-->
+<style>
+  :root{
+    --tapete1:#1f7a43; --tapete2:#0e3b21;
+    --oro:#f2c230; --texto:#f4f1e6; --suave:#cfe3d4; --mal:#ff5a4f;
+    --cw:180px;                  /* ancho de la carta grande */
+    --pw:120px;                  /* ancho de la carta de los montones */
+    --dw:120px;                  /* ancho del mazo */
+    --ch:calc(var(--cw) * 1.57); --ph:calc(var(--pw) * 1.57); --dh:calc(var(--dw) * 1.57);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,sans-serif; color:var(--texto);
+    background:radial-gradient(ellipse at 50% 35%, var(--tapete1), var(--tapete2) 75%);
+    background-color:var(--tapete2);
+    min-height:100vh; user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent; overscroll-behavior:none;
+  }
+  img{-webkit-touch-callout:none}
+  .ayuda-corta{display:none}
+  .juego{max-width:1100px;margin:0 auto;padding:16px 24px 32px}
+
+  /* Barra superior */
+  .barra{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .barra h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:30px;letter-spacing:.5px;color:var(--oro);text-shadow:0 2px 0 rgba(0,0,0,.35)}
+  .barra h1 small{display:block;font-family:"Segoe UI",system-ui,sans-serif;font-size:14px;color:var(--suave);letter-spacing:0;text-shadow:none;font-weight:400}
+  .marcadores{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .dato{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 12px;min-width:82px;text-align:center}
+  .dato b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+  .dato span{font-size:12px;color:var(--suave);text-transform:uppercase;letter-spacing:.6px}
+  .dato.fallos b{color:#ffb3ad}
+  button.btn{font:inherit;font-weight:600;cursor:pointer;border:0;border-radius:10px;padding:12px 18px;background:var(--oro);color:#3a2a00;box-shadow:0 3px 0 #a07c10}
+  button.btn:hover{filter:brightness(1.06)}
+  button.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #a07c10}
+  button.btn.secundario{background:rgba(255,255,255,.14);color:var(--texto);box-shadow:none;border:1px solid rgba(255,255,255,.25)}
+
+  /* Cartas */
+  .carta{width:var(--cw);height:var(--ch);filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+  .carta img{display:block;width:100%;height:100%;pointer-events:none}
+  .dorso{width:100%;height:100%;border-radius:12px;background:#fbf8ef;padding:8px}
+  .dorso::before{content:"";display:block;width:100%;height:100%;border-radius:6px;border:3px solid #c9a227;
+    background:
+      radial-gradient(circle, #f2c230 1.6px, transparent 2px) 0 0/14px 14px,
+      linear-gradient(45deg, #b3202a 25%, transparent 25%, transparent 75%, #b3202a 75%) 0 0/14px 14px,
+      linear-gradient(45deg, #b3202a 25%, transparent 25%, transparent 75%, #b3202a 75%) 7px 7px/14px 14px,
+      #8f1520;}
+
+  /* Mesa */
+  .mesa{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:32px;margin:26px 0 30px}
+  .mazo{justify-self:end;position:relative;width:var(--dw);height:var(--dh)}
+  .mazo .carta{position:absolute;inset:0;width:var(--dw);height:var(--dh)}
+  .mazo .contador{position:absolute;left:0;right:0;bottom:-26px;text-align:center;font-size:13px;color:var(--suave)}
+  .mazo.vacio .carta{opacity:0}
+  .mazo .hueco-vacio{position:absolute;inset:0;border:2px dashed rgba(255,255,255,.2);border-radius:10px}
+  .centro{width:var(--cw);height:var(--ch);position:relative}
+  .ayuda{font-size:15px;line-height:1.55;color:var(--suave);max-width:270px}
+  .ayuda kbd{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);border-radius:5px;padding:1px 6px;font-family:inherit;font-size:13px;color:var(--texto)}
+
+  #carta-actual{cursor:grab;touch-action:none;transform-origin:0 0;position:relative;z-index:5}
+  #carta-actual.arrastrando{cursor:grabbing;z-index:50;filter:drop-shadow(0 16px 18px rgba(0,0,0,.45))}
+  #carta-wrap.entra{animation:entra .28s ease-out}
+  @keyframes entra{from{transform:translate(-200px,0) scale(.67);opacity:.4}to{transform:none;opacity:1}}
+  #carta-actual.sacude img{animation:sacude .35s}
+  @keyframes sacude{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px) rotate(-2deg)}40%{transform:translateX(9px) rotate(2deg)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+
+  /* Montones */
+  .montones{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .monton{font:inherit;color:inherit;cursor:pointer;background:rgba(0,0,0,.18);border:2px dashed rgba(255,255,255,.25);border-radius:14px;padding:12px 10px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;transition:border-color .15s, background .15s, transform .15s}
+  @media (hover:hover){ .monton:hover{border-color:rgba(242,194,48,.7);background:rgba(0,0,0,.24)} }
+  .monton.sobre{border-color:var(--oro);border-style:solid;background:rgba(242,194,48,.14);transform:translateY(-4px)}
+  .monton.ok{animation:ok .45s}
+  .monton.error{animation:error .5s}
+  @keyframes ok{0%{box-shadow:0 0 0 0 rgba(61,220,132,.9)}100%{box-shadow:0 0 0 18px rgba(61,220,132,0)}}
+  @keyframes error{0%,60%{border-color:var(--mal);background:rgba(255,90,79,.25)}100%{}}
+  .monton .titulo{display:flex;align-items:center;gap:8px;font-family:Georgia,serif;font-size:20px;font-weight:700}
+  .monton .titulo .tecla{font-family:"Segoe UI",system-ui,sans-serif;font-size:11px;font-weight:600;color:var(--suave);border:1px solid rgba(255,255,255,.3);border-radius:4px;padding:0 5px}
+  .hueco{width:var(--pw);height:var(--ph);position:relative;border-radius:10px}
+  .hueco .marca{position:absolute;inset:0;border-radius:10px;border:2px solid rgba(255,255,255,.15);overflow:hidden}
+  .hueco .marca img{width:100%;height:100%;opacity:.22;filter:grayscale(.3)}
+  .hueco .carta{position:absolute;inset:0;width:var(--pw);height:var(--ph)}
+  .monton .cuenta{font-size:13px;color:var(--suave);font-variant-numeric:tabular-nums}
+
+  /* Capas (inicio / final) */
+  .capa{position:fixed;inset:0;background:rgba(5,25,14,.72);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .capa[hidden]{display:none}
+  .panel{background:#fbf7ea;color:#2a2418;border-radius:16px;max-width:560px;width:100%;padding:28px 30px;box-shadow:0 20px 50px rgba(0,0,0,.5);text-align:center}
+  .panel h2{font-family:Georgia,serif;margin:0 0 6px;font-size:30px;color:#8a1020}
+  .panel p{line-height:1.55;margin:10px 0}
+  .panel .muestra{display:flex;justify-content:center;gap:10px;margin:14px 0 6px}
+  .panel .muestra .carta{width:90px;height:141px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  .panel table{margin:14px auto;border-collapse:collapse;font-size:16px}
+  .panel td{padding:4px 12px;text-align:left}
+  .panel td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .panel tr.total td{border-top:2px solid #d8cfb6;font-size:20px;color:#8a1020}
+  .panel .record{color:#2e7d32;font-weight:700}
+  .panel .botones{display:flex;gap:10px;justify-content:center;margin-top:16px}
+  .panel .creditos{font-size:12px;color:#7a705a;margin-top:14px}
+  .panel .creditos a{color:inherit}
+
+  /* ================= MÓVIL EN VERTICAL ================= */
+  @media (max-width:760px) and (orientation:portrait){
+    :root{
+      /* Los 4 montones apilados deben caber en la altura disponible */
+      --ph:max(70px, calc((100dvh - 300px) / 4));
+      --pw:calc(var(--ph) / 1.57);
+      --cw:min(calc(100vw - 150px), calc((100dvh - 250px) / 1.57));
+      --dw:44px;
+    }
+    body{min-height:100dvh}
+    .juego{padding:10px 12px calc(10px + env(safe-area-inset-bottom));height:100dvh;display:flex;flex-direction:column}
+    .barra{position:relative;gap:8px}
+    .barra h1{font-size:22px}
+    .barra h1 small{display:none}
+    #b-nueva{position:absolute;top:0;right:0;padding:6px 10px;font-size:13px}
+    .marcadores{width:100%;gap:5px;flex-wrap:nowrap}
+    .dato{flex:1;min-width:0;padding:3px 2px;border-radius:8px}
+    .dato b{font-size:17px}
+    .dato span{font-size:9px;letter-spacing:.2px}
+    .tablero{flex:1;min-height:0;display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px}
+    .mesa{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;margin:0}
+    .mazo{justify-self:auto;align-self:center}
+    .mazo .contador{bottom:auto;top:50%;left:calc(100% + 8px);right:auto;transform:translateY(-50%);white-space:nowrap;font-size:12px}
+    .ayuda{display:none}
+    .ayuda-corta{display:block;margin:0;font-size:12px;color:var(--suave);text-align:center}
+    .montones{grid-template-columns:1fr;gap:8px;align-content:center}
+    .monton{display:grid;grid-template-columns:auto auto;grid-template-areas:"t c" "h h";justify-content:center;align-items:baseline;column-gap:6px;row-gap:4px;padding:5px 7px 7px;border-radius:10px}
+    .monton.sobre{transform:translateX(-4px)}
+    .monton .titulo{grid-area:t;font-size:13px}
+    .monton .titulo .tecla{display:none}
+    .monton .cuenta{grid-area:c;font-size:11px}
+    .monton .hueco{grid-area:h;justify-self:center}
+    .hueco,.hueco .marca{border-radius:6px}
+    .dorso{border-radius:6px;padding:3px}
+    .dorso::before{border-width:2px;border-radius:3px}
+    .panel{padding:20px 16px}
+    .panel h2{font-size:26px}
+    .panel .muestra{gap:6px}
+    .panel .muestra .carta{width:min(80px,19vw);height:auto;aspect-ratio:400/628}
+    .panel td{padding:4px 6px;font-size:15px}
+  }
+
+  /* ================= MÓVIL EN HORIZONTAL ================= */
+  @media (orientation:landscape) and (max-height:520px){
+    :root{
+      --ph:max(60px, calc((100dvh - 150px) / 2));
+      --pw:calc(var(--ph) / 1.57);
+      --cw:calc((100dvh - 80px) / 1.57);
+      --dw:44px;
+    }
+    body{min-height:100dvh}
+    .juego{max-width:none;padding:6px max(14px, env(safe-area-inset-right)) 6px max(14px, env(safe-area-inset-left));height:100dvh;display:flex;flex-direction:column}
+    .barra{flex-wrap:nowrap;gap:10px}
+    .barra h1{font-size:20px;white-space:nowrap}
+    .barra h1 small{display:none}
+    .marcadores{flex-wrap:nowrap;gap:5px}
+    .dato{min-width:58px;padding:2px 6px;border-radius:8px}
+    .dato b{font-size:16px}
+    .dato span{font-size:9px}
+    #b-nueva{padding:6px 10px;font-size:13px}
+    .tablero{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:24px;margin-top:6px}
+    .mesa{display:flex;align-items:center;gap:18px;margin:0}
+    .mazo{justify-self:auto}
+    .mazo .contador{font-size:11px;bottom:-20px;left:-30px;right:-30px;white-space:nowrap}
+    .ayuda{display:none}
+    .montones{grid-template-columns:repeat(2,auto);gap:8px}
+    .monton{display:grid;grid-template-columns:auto auto;grid-template-areas:"t c" "h h";justify-content:center;align-items:baseline;column-gap:6px;row-gap:3px;padding:4px 8px 6px;border-radius:10px}
+    .monton .titulo{grid-area:t;font-size:13px}
+    .monton .titulo .tecla{display:none}
+    .monton .cuenta{grid-area:c;font-size:11px}
+    .monton .hueco{grid-area:h;justify-self:center}
+    .hueco,.hueco .marca{border-radius:6px}
+    .dorso{border-radius:6px;padding:3px}
+    .dorso::before{border-width:2px;border-radius:3px}
+    .capa{align-items:flex-start;overflow:auto}
+    .panel{padding:14px 18px}
+    .panel h2{font-size:22px}
+    .panel .muestra .carta{width:60px;height:94px}
+    .panel p{margin:6px 0}
+  }
+</style>
+</head>
+<body>
+<div class="juego">
+  <header class="barra">
+    <h1>Cuatro Palos <small>Lleva cada carta de la baraja española a su palo</small></h1>
+    <div class="marcadores">
+      <div class="dato"><b id="m-quedan">40</b><span>Quedan</span></div>
+      <div class="dato"><b id="m-aciertos">0</b><span>Aciertos</span></div>
+      <div class="dato fallos"><b id="m-fallos">0</b><span>Fallos</span></div>
+      <div class="dato"><b id="m-tiempo">0:00</b><span>Tiempo</span></div>
+      <div class="dato"><b id="m-record">—</b><span>Récord</span></div>
+      <button class="btn secundario" id="b-nueva">Nueva partida</button>
+    </div>
+  </header>
+
+  <main class="tablero">
+  <section class="mesa">
+    <div class="mazo" id="mazo">
+      <div class="hueco-vacio"></div>
+      <div class="carta" style="transform:translate(-6px,-6px)"><div class="dorso"></div></div>
+      <div class="carta" style="transform:translate(-3px,-3px)"><div class="dorso"></div></div>
+      <div class="carta"><div class="dorso"></div></div>
+      <div class="contador" id="mazo-cuenta">39 en el mazo</div>
+    </div>
+    <div class="centro" id="carta-wrap">
+      <div class="carta" id="carta-actual" aria-live="polite"></div>
+    </div>
+    <div class="ayuda">
+      <p><b>Arrastra</b> la carta hasta su montón o simplemente <b>pulsa</b> el montón correcto.</p>
+      <p>También con el teclado: <kbd>1</kbd> Oros · <kbd>2</kbd> Copas · <kbd>3</kbd> Espadas · <kbd>4</kbd> Bastos.</p>
+      <p>Cuanto más rápido y con menos fallos, más puntos.</p>
+    </div>
+    <p class="ayuda-corta">Arrastra la carta o toca su montón</p>
+  </section>
+
+  <section class="montones" id="montones"></section>
+  </main>
+</div>
+
+<div class="capa" id="capa-inicio">
+  <div class="panel">
+    <h2>Cuatro Palos</h2>
+    <div class="muestra" id="muestra"></div>
+    <p>Irán saliendo, una a una, las <b>40 cartas</b> de la baraja española. Lleva cada una a su montón: <b>oros, copas, espadas o bastos</b>.</p>
+    <p>El reloj empieza con tu primer movimiento.</p>
+    <div class="botones"><button class="btn" id="b-empezar">Empezar</button></div>
+    <p class="creditos">Cartas: foto de Cantabrucu en <a href="https://commons.wikimedia.org/wiki/File:Spanish_deck_Fournier.jpg" target="_blank" rel="noopener">Wikimedia Commons</a> (CC0).</p>
+  </div>
+</div>
+
+<div class="capa" id="capa-final" hidden>
+  <div class="panel">
+    <h2>¡Baraja completa!</h2>
+    <table id="tabla-final"></table>
+    <p id="txt-record"></p>
+    <div class="botones"><button class="btn" id="b-otra">Jugar otra vez</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Datos de la baraja ---------- */
+  const PALOS = [
+    {id:'oros',    nombre:'Oros',    tecla:'1'},
+    {id:'copas',   nombre:'Copas',   tecla:'2'},
+    {id:'espadas', nombre:'Espadas', tecla:'3'},
+    {id:'bastos',  nombre:'Bastos',  tecla:'4'}
+  ];
+  const NUMEROS = [1,2,3,4,5,6,7,10,11,12];
+  const NOMBRE_NUM = {1:'As',10:'Sota',11:'Caballo',12:'Rey'};
+
+  function src(c){ return `cartas/${c.palo}-${c.num}.webp`; }
+  function nombre(c){ return `${NOMBRE_NUM[c.num]||c.num} de ${c.palo}`; }
+  function cartaHTML(c){ return `<img src="${src(c)}" alt="${nombre(c)}" data-palo="${c.palo}" draggable="false">`; }
+
+  // Precarga de las 40 imágenes para que no haya parpadeos
+  for(const p of PALOS) for(const n of NUMEROS){ const i=new Image(); i.src=src({palo:p.id,num:n}); }
+
+  /* ---------- Estado del juego ---------- */
+  const $ = id => document.getElementById(id);
+  const el = {
+    carta:$('carta-actual'), wrap:$('carta-wrap'), mazo:$('mazo'), mazoCuenta:$('mazo-cuenta'),
+    montones:$('montones'), quedan:$('m-quedan'), aciertos:$('m-aciertos'), fallos:$('m-fallos'),
+    tiempo:$('m-tiempo'), record:$('m-record')
+  };
+  let mazo=[], actual=null, aciertos=0, fallos=0, t0=0, reloj=null, ocupado=false, jugando=false;
+  const pilas={}, huecos={};
+
+  const CLAVE_RECORD='cuatro-palos-record';
+  function leerRecord(){ try{ const v=localStorage.getItem(CLAVE_RECORD); return v?JSON.parse(v):null; }catch(e){ return null; } }
+  function guardarRecord(r){ try{ localStorage.setItem(CLAVE_RECORD, JSON.stringify(r)); }catch(e){} }
+
+  function barajar(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  function fmt(s){ return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+  function segundos(){ return t0 ? (Date.now()-t0)/1000 : 0; }
+
+  function montarMontones(){
+    el.montones.innerHTML='';
+    for(const p of PALOS){
+      const b=document.createElement('button');
+      b.className='monton'; b.dataset.palo=p.id;
+      b.setAttribute('aria-label','Montón de '+p.nombre);
+      b.innerHTML=`<div class="titulo">${p.nombre}<span class="tecla">${p.tecla}</span></div>
+        <div class="hueco"><div class="marca"><img src="${src({palo:p.id,num:1})}" alt="" draggable="false"></div></div>
+        <div class="cuenta">0 / 10</div>`;
+      b.addEventListener('click',()=>intentar(p.id));
+      el.montones.appendChild(b);
+      huecos[p.id]=b;
+    }
+  }
+
+  function pintarMonton(palo){
+    const b=huecos[palo], pila=pilas[palo], h=b.querySelector('.hueco');
+    h.querySelectorAll('.carta').forEach(n=>n.remove());
+    const vis=pila.slice(-3);   // hasta 3 cartas visibles para dar sensación de montón
+    vis.forEach((c,i)=>{
+      const d=document.createElement('div'); d.className='carta';
+      const off=(vis.length-1-i)*-3;
+      d.style.transform=`translate(${off}px,${off}px)`;
+      d.innerHTML=cartaHTML(c); h.appendChild(d);
+    });
+    b.querySelector('.cuenta').textContent=pila.length+' / 10';
+  }
+
+  function marcadores(){
+    el.quedan.textContent=mazo.length+(actual?1:0);
+    el.aciertos.textContent=aciertos;
+    el.fallos.textContent=fallos;
+    el.mazoCuenta.textContent=mazo.length===1?'1 en el mazo':mazo.length+' en el mazo';
+    el.mazo.classList.toggle('vacio',mazo.length===0);
+    const r=leerRecord();
+    el.record.textContent=r?r.puntos:'—';
+  }
+
+  function arrancarReloj(){ t0=Date.now(); reloj=setInterval(()=>{ el.tiempo.textContent=fmt(segundos()); },250); }
+  function pararReloj(){ clearInterval(reloj); reloj=null; }
+
+  function nuevaPartida(){
+    pararReloj();
+    mazo=[];
+    for(const p of PALOS) for(const n of NUMEROS) mazo.push({palo:p.id,num:n});
+    barajar(mazo);
+    actual=null; aciertos=0; fallos=0; t0=0; ocupado=false; jugando=true;
+    for(const p of PALOS){ pilas[p.id]=[]; pintarMonton(p.id); }
+    el.tiempo.textContent='0:00';
+    $('capa-final').hidden=true;
+    siguiente();
+  }
+
+  function siguiente(){
+    el.carta.style.transition='none';
+    el.carta.style.transform='';
+    drag.dx=drag.dy=0;
+    if(!mazo.length){ actual=null; el.carta.innerHTML=''; marcadores(); fin(); return; }
+    actual=mazo.pop();
+    el.carta.innerHTML=cartaHTML(actual);
+    el.wrap.classList.remove('entra'); void el.wrap.offsetWidth; el.wrap.classList.add('entra');
+    marcadores();
+  }
+
+  function destello(b,clase){ b.classList.remove('ok','error'); void b.offsetWidth; b.classList.add(clase); }
+
+  function intentar(palo){
+    if(!jugando||!actual||ocupado) return;
+    if(!t0) arrancarReloj();
+    const b=huecos[palo];
+    if(palo===actual.palo){
+      aciertos++; ocupado=true;
+      volar(b,()=>{
+        pilas[palo].push(actual); pintarMonton(palo); destello(b,'ok');
+        actual=null; ocupado=false; siguiente();
+      });
+    } else {
+      fallos++;
+      destello(b,'error');
+      volver();
+      el.carta.classList.remove('sacude'); void el.carta.offsetWidth; el.carta.classList.add('sacude');
+      marcadores();
+    }
+  }
+
+  function volar(b,fin){
+    const r=el.carta.getBoundingClientRect();
+    const t=b.querySelector('.hueco').getBoundingClientRect();
+    const s=t.width/r.width;
+    const nx=drag.dx+(t.left-r.left), ny=drag.dy+(t.top-r.top);
+    el.carta.style.transition='transform .28s ease-in';
+    el.carta.style.transform=`translate(${nx}px,${ny}px) scale(${s})`;
+    setTimeout(fin,290);
+  }
+
+  function volver(){
+    drag.dx=drag.dy=0;
+    el.carta.style.transition='transform .22s ease-out';
+    el.carta.style.transform='';
+  }
+
+  function fin(){
+    jugando=false; pararReloj();
+    const seg=Math.round(segundos());
+    const bonus=Math.max(0,120-seg);
+    const puntos=Math.max(0,aciertos*10-fallos*5+bonus);
+    const prev=leerRecord();
+    const esRecord=!prev||puntos>prev.puntos;
+    if(esRecord) guardarRecord({puntos,seg,fallos});
+    $('tabla-final').innerHTML=`
+      <tr><td>Cartas colocadas (${aciertos} × 10)</td><td>${aciertos*10}</td></tr>
+      <tr><td>Fallos (${fallos} × −5)</td><td>${fallos?'−'+fallos*5:'0'}</td></tr>
+      <tr><td>Bonificación por tiempo (${fmt(seg)})</td><td>+${bonus}</td></tr>
+      <tr class="total"><td>Puntuación</td><td>${puntos}</td></tr>`;
+    $('txt-record').innerHTML = esRecord
+      ? '<span class="record">¡Nuevo récord!</span>'
+      : `Tu récord sigue siendo <b>${prev.puntos}</b> puntos.`;
+    marcadores();
+    $('capa-final').hidden=false;
+    $('b-otra').focus();
+  }
+
+  /* ---------- Arrastrar (ratón; preparado también para dedo) ---------- */
+  const drag={activo:false,x0:0,y0:0,dx:0,dy:0,sobre:null};
+
+  function montonEn(x,y){
+    for(const p of PALOS){
+      const r=huecos[p.id].getBoundingClientRect();
+      if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom) return p.id;
+    }
+    return null;
+  }
+  function marcarSobre(palo){
+    if(drag.sobre===palo) return;
+    if(drag.sobre) huecos[drag.sobre].classList.remove('sobre');
+    drag.sobre=palo;
+    if(palo) huecos[palo].classList.add('sobre');
+  }
+
+  el.carta.addEventListener('pointerdown',e=>{
+    if(!jugando||!actual||ocupado||e.button>0) return;
+    e.preventDefault();
+    el.carta.setPointerCapture(e.pointerId);
+    drag.activo=true;
+    drag.x0=e.clientX; drag.y0=e.clientY; drag.dx=drag.dy=0;
+    el.carta.style.transition='none';
+    el.carta.classList.add('arrastrando');
+  });
+  el.carta.addEventListener('pointermove',e=>{
+    if(!drag.activo) return;
+    drag.dx=e.clientX-drag.x0; drag.dy=e.clientY-drag.y0;
+    el.carta.style.transform=`translate(${drag.dx}px,${drag.dy}px)`;
+    marcarSobre(montonEn(e.clientX,e.clientY));
+  });
+  function soltar(){
+    if(!drag.activo) return;
+    drag.activo=false;
+    el.carta.classList.remove('arrastrando');
+    const palo=drag.sobre; marcarSobre(null);
+    if(palo) intentar(palo); else volver();
+  }
+  el.carta.addEventListener('pointerup',soltar);
+  el.carta.addEventListener('pointercancel',soltar);
+
+  /* ---------- Teclado ---------- */
+  const TECLAS={'1':'oros','2':'copas','3':'espadas','4':'bastos','o':'oros','c':'copas','e':'espadas','b':'bastos'};
+  document.addEventListener('keydown',e=>{
+    if(!$('capa-inicio').hidden){ if(e.key==='Enter'){ e.preventDefault(); empezar(); } return; }
+    const p=TECLAS[e.key.toLowerCase()];
+    if(p && !drag.activo){ e.preventDefault(); intentar(p); }
+  });
+
+  /* ---------- Arranque ---------- */
+  function empezar(){ $('capa-inicio').hidden=true; nuevaPartida(); }
+
+  montarMontones();
+  $('muestra').innerHTML=[['oros',1],['copas',12],['espadas',11],['bastos',10]]
+    .map(([palo,num])=>`<div class="carta">${cartaHTML({palo,num})}</div>`).join('');
+  marcadores();
+
+  $('b-empezar').addEventListener('click',empezar);
+  $('b-otra').addEventListener('click',nuevaPartida);
+  $('b-nueva').addEventListener('click',()=>{ $('capa-inicio').hidden=true; nuevaPartida(); });
+})();
+</script>
+</body>
+</html>
